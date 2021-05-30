@@ -1,0 +1,109 @@
+---
+title: "Exercise 1: Monte-Carlo"
+output: 
+  html_document:
+    number_sections: false
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(tidy = TRUE, message = FALSE, cache=TRUE)
+#"`r gsub(' 0', ' ', format.Date(Sys.Date(), '%B %dth, %Y'))`"
+```
+
+ 1. The Law of Large Numbers and Monte-Carlo Estimation.
+ 
+    a. Generate a sample of $50$ observations from a Gaussian distribution with mean $m=2$ and standard deviation $s=3$ using the `rnorm()` function. Compute the estimates of both the mean and the standard deviation of this $50$-sample of size 50. Then create a sample of size $20\,000$ and compute again such estimates on this $20\,000$-sample. What do you notice ? Which famous theoretical property is illustrated here ?
+
+    b.  Write a function of the number of Monte-Carlo iterations `nMC` that estimates both the mean and the standard deviation from averaging over `nMC` estimates (each using a different generated $50$-sample). Compare `nMC = 10` and `nMC = 5000`.
+        ```{r MC1b, eval = FALSE, echo = TRUE}
+        MC_estim <- function(nMC){
+          
+          mean_mcsample <- numeric(nMC)
+          sd_mcsample <- numeric(nMC)
+          
+          for(i in 1:nMC){
+            sample_50 <- ...
+            mean_mcsample[i] <- ...
+            sd_mcsample[i] <- ...
+          }
+          
+          mc_est <- c("mc_mean" = ..., "mc_sd" = ...)
+          return(mc_est)
+        }
+        MC_estim(10)
+        MC_estim(5000)
+        ```
+
+ 2. Let's now program a Monte-Carlo estimate of $\pi\approx 3,1416$
+  
+    a. Program a function `roulette_coord` which has only one argument `ngrid` (representing the number of different outcomes possible on the *roulette* used) whose default is `35`, generating the two coordinates of a point (between $0$ and $35$) as a vector. Use the `R` function `sample` (whhose help page is accessible through the command `?sample`). The function will return the vector of the 2 coordinates `x` and `y` generated this way.
+        ```{r MC2-roulette, eval=FALSE, echo = TRUE}
+        roulette_coord <- function(ngrid = 35){
+          x <- ...
+          y <- ...
+          return(c(x, y))
+        }
+        ```
+    b. Thanks to the formula to compute the distance bewteen 2 points: $d = \sqrt{(x_1 - x_2)^2 + (y_1 - y_2)^2}$, program a function computing the distance to the origin (here has coordinates $(\frac{ngrid}{2}, \frac{ngrid}{2})$) that checks if the computed distance is less than the unit disk radius ($R = \frac{ngrid}{2}$). This function, called for instance `inside_disk_fun()`, will have 2 arguments: the vector `p` containing the coordinates of the points on the one hand, and the integer `ngrid` on the other hand. It will return a boolean value (`TRUE`or `FALSE`) indicating the point is inside the disk.
+        ```{r MC2-inside-disk, eval=FALSE, echo = TRUE}
+        inside_disk_fun <- function(p, ngrid = 35){
+          d <- ...
+          return(d <= ngrid/2)
+        }
+        ```
+    c. The surface ratio between the disk (radius $\frac{ngrid}{2}$) and the square (side length $ngrid$) is equal to $\frac{\pi}{4}$, i.e. the probability of sampling a point the disk rather than outside is $\frac{\pi}{4}$. Now, using this result, program a function to compute a Monte Carlo estimate of $pi$ from a boolean vector of size $n$ (the number of sampled points), which is `TRUE` if the point is indeed inside the disk and `FALSE` otherwise.
+        ```{r MC2-piMC, eval=TRUE, echo = FALSE}
+        piMC <- function(in_disk){
+          return(...)
+        }
+        ```
+    d. Using the code below, generate 200 points and plot the data generated. What is the corresponding Monte Carlo estimate of $\pi$ ? Change  `npoints` and comment. How could the estimation be improved (*ProTip*: try `ngrid <- 1000` and `npoints <- 5000`) ?
+        ```{r MC2-plot-est, fig.width = 6, fig.height = 6, echo = TRUE, eval = FALSE, results='hide'}
+        # Grid size (resolution)
+        ngrid <- 35
+        
+        # Monte Carlo sample size
+        npoints <- 200
+        
+        # Points generation
+        pp <- matrix(NA, ncol = 2, nrow = npoints)
+        for(i in 1:nrow(pp)){pp[i, ] <- roulette_coord(ngrid)}
+        
+        # Estimate pi
+        in_disk <- apply(X = pp, MARGIN = 1, FUN = inside_disk_fun, ngrid = ngrid)
+        piMC(in_disk)
+        
+        # Plot
+        ## first we initialise an empty plot with the right size 
+        ## using argument
+        plot(x = pp[, 1], y = pp[, 2], 
+             xlim = c(0, ngrid), ylim = c(0, ngrid), 
+             axes = 0, xlab = "x", ylab = "y", 
+             type="n")
+        ## we tick the x and then y axes from 1 to ngrid
+        axis(1, at=c(0:ngrid))
+        axis(2, at=c(0:ngrid))
+        ## we add a square around the plot
+        box() 
+        ## we plot the grid (using dotted lines thanks to the argument `lty = 3`)
+        ## onto which the points are sample
+        for(i in 0:ngrid){
+          abline(h=i, lty = 3)
+          abline(v=i, lty = 3)
+        }
+        ## we add the sampled points
+        lines(x = pp[, 1], y = pp[, 2], 
+             xlim = c(0, ngrid), ylim = c(0, ngrid), 
+             xlab = "x", ylab = "y",
+             type= "p", pch=16)
+        ## we add the circle display
+        x.cercle <- seq(0, ngrid, by = 0.1)
+        y.cercle <- sqrt((ngrid/2)^2 - (x.cercle-ngrid/2)^2)
+        lines(x.cercle, y = y.cercle + ngrid/2, col = "red")
+        lines(x.cercle, y = - y.cercle + ngrid/2, col = "red")
+        ## finally we color in red the points sampled inside the disk
+        lines(x = pp[in_disk, 1], y = pp[in_disk, 2], 
+             xlim = c(0, ngrid), ylim = c(0, ngrid), 
+             xlab = "x", ylab = "y",
+             type= "p", pch=16, col="red", cex=0.7)
+        ```

@@ -1,0 +1,37 @@
+---
+title: "Exercise 5: Post-mortem analysis of an under-powered randomized trial"
+output:
+  html_document:
+    toc: false
+    number_sections: false
+---
+
+
+```{r, include=FALSE, }
+knitr::opts_chunk$set(tidy = TRUE, message = FALSE, cache=FALSE)
+```
+
+The randomized clinical trial *EOLIA*^[[Combes *et al.*, Extracorporeal Membrane Oxygenation for Severe Acute Respiratory Distress Syndrome, *New England Journal of Medicine* 378(21): 1965--1975, 2018.](https://doi.org/10.1056/NEJMoa1800385)] evaluated a new treatment for severe acute respiratory distress syndrome (severe ARDS) by comparing the mortality rate after 60 days among 249 patients randomized between a control group (receiving conventional treatment, i.e. mechanical ventilation) and a treatment group receiving extracorporeal membrane oxygenation (ECMO) --- the new treatment studied. A frequentist analysis of the data concluded to a Relative Risk of death of $0.76$ in the ECMO group compared to controls (in Intention to Treat), with $CI_{95\%} = [0.55 , 1.04]$ and the associated p-value of $0.09$.
+
+Goligher *et al.* (2019) ^[[Goligher *et al.*, Extracorporeal Membrane Oxygenation for Severe Acute Respiratory Distress Syndrome and Posterior Probability of Mortality Benefit in a Post Hoc Bayesian Analysis of a Randomized Clinical Trial, *JAMA* 320(21): 2251 (2018).](https://doi.org/10.1001/jama.2018.14276)] performed a Bayesian re-analysis of these data, further exploring the evidence and how it can be quantified and summarized with a Bayesian approach.
+
+
+|                                   | Control | ECMO |
+|-----------------------------------|---------|------|
+| **$n$ observed**                  | 125     | 124  |
+| **number of deceased at 60 days** |  57     |  44  |
+Table: Observed data from the *EOLIA* trial
+
+
+ 1. Write the Bayesian model used by Goligher *et al.* (2019).
+  
+  
+ 2. Write the corresponding BUGS model, and save it into a `.txt` file (for instance called `goligherBUGSmodel.txt`)
+
+
+ 3. First create two binary data vectors `ycontrol` and `yecmo`, that are either `1` or `0`, to encode the observations from the data table above. Then uses the `jags.model()` and `coda.samples()` to replicate the estimation from Goligher *et al.* (2019) (**ProTip:** use the function `window()` to remove the burn-in observation from the output of the `coda.samples` function.)
+
+ 4. Check the convergence, and then comment the estimate results (**ProTip:** look at the effective sample size with the `effectiveSize()` `R` function).
+
+ 5. Change to a more informative *prior* using a Gaussian distribution for the log(RR), centered on log(0.78) and with a standard deviation of 0.15 in the log(RR) scale (i.e. a precision of $\approx 45$). Comment the results. Try out other *prior* distributions.
+

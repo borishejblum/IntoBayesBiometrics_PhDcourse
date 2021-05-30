@@ -12,15 +12,15 @@ Welcome to the 2021 PhD training course from the *Digital Public Health* program
  2. slide deck #2: [Bayesian computations](slidesIntroBayesBiom_mcmc.pdf)
 
 ## Practicals
- - Exercise 1: [Monte-Carlo]()
- - Exercise 2: [Inverse transform]()
- - Exercise 3: [Metropolis-Hastings algorithm]()
- - Exercise 4: [BUGS & JAGS]()
- - Exercise 5: [Post-mortem analysis of an under-powered randomized trial]()
+ - Exercise 1: [Monte-Carlo](piMCestimate.Rmd)
+ - Exercise 2: [Inverse transform](inverseTransfo.Rmd)
+ - Exercise 3: [Metropolis-Hastings algorithm](MH.Rmd)
+ - Exercise 4: [BUGS & JAGS](JAGSstart.Rmd)
+ - Exercise 5: [Post-mortem analysis of an under-powered randomized trial](RRestim.Rmd)
  
 ## Lecture notes
 
-[]()
+[here](IntroBayesBiom_lectureNotes.pdf)
  
 ## Technical requirements
 

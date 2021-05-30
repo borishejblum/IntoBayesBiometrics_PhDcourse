@@ -1,0 +1,90 @@
+---
+title: "Exercise 4: Introduction to BUGS & JAGS"
+output:
+  html_document:
+    toc: false
+    number_sections: false
+---
+
+
+```{r, include=FALSE, }
+knitr::opts_chunk$set(tidy = TRUE, message = FALSE, cache=FALSE)
+
+```
+
+The [BUGS project](https://www.mrc-bsu.cam.ac.uk/software/bugs/) (*Bayesian inference Using Gibbs Sampling*) was initiated in 1989 by the MRC (*Medical Research Council*) Biostatistical Unit at the University of Cambridge (United-Kingdom) to develop a flexible and user-friendly software for Bayesian analysis of complex models through MCMC algorithms. Its most famous and original implementation is `WinBUGS`, a clicking software available under *Windows*. `OpenBUGS` is an alternative implementation of `WinBUGS` running on either *Windows*, *Mac OS* ou *Linux*. [`JAGS`](http://mcmc-jags.sourceforge.net/) (*Just another Gibbs Sampler*) is a different and newer implementation that also relies on the `BUGS` language. Finally, the [`STAN`](http://mc-stan.org/) software must also be mentionned, recently developed et the Columbia Univeristy, ressemble `BUGS` through its interface, but relies on innovative MCMC approaches, such as Hamiltonian Monte Carlo, or variational Bayes approaches. A very useful resource is the [JAGS user manual](http://sourceforge.net/projects/mcmc-jags/files/Manuals/3.x/jags_user_manual.pdf).
+
+To familiarise yourself with `JAGS` (and its `R` interface through the package `rjags`), we will look here at the *posterior* estimation of the mean and variance of observed data that we will model with a Gaussian distribution.
+
+ 0. Start by loading the `R` package `rjags`.
+  
+      ```{r lib1, eval = TRUE, echo = TRUE}
+      library(rjags)
+      ```
+
+A `BUGS` model has 3 components: 
+  
+  - *the model*: specified in an external text file (`.txt`) according to a specific `BUGS` syntax
+  - *the data*: a list containing each observation under a name matching the one used in the model specification
+  - *the initial values*: (optional) a list containing the initial values for the various parameters to be estimated
+
+ 1. Sample $N=50$ observations from a Gaussian distribution with mean $m = 2$ and standard deviation $s = 3$ using the `R` function `rnorm` and store it into an object called `obs`.
+  
+      ```{r, eval = TRUE, echo = TRUE}
+      N <- 50 # the number of observations
+      obs <- rnorm(n = N, mean = 2, sd = 3) # the (fake) observed data
+      ```
+  
+ 2. Read the help of the `rjags` package, then save a text file (`.txt`) the following code defining the `BUGS` model: 
+      ```{BUGS normal-model, echo=TRUE}
+      # Model
+      model{
+        
+        # Likelihood
+        for (i in 1:N){ 
+          obs[i]~dnorm(mu,tau)
+        }
+        
+        # Prior
+        mu~dnorm(0,0.0001) # proper but very flat (so weakly informative)
+        tau~dgamma(0.0001,0.0001) # proper, and weakly informative (conjugate for Gaussian)
+        
+        # Variables of interest
+        sigma <- pow(tau, -0.5)
+      }
+      ```
+
+Each model specification file must start with the instruction `model{` indicating `JAGS` it is about to recieve a model specification. Then the model must be set up, usually by cycling along the data with a `for` loop. Here, we want to declare `N` observations, and each of them `obs[i]` follows a Gaussian distribution (characterized with the command `dnorm`) of mean `mu` and precision `tau`.  
+***Warning***: in `BUGS`, the Gaussian distribution is parameterized by its **precision**, which is simply the inverse of the variance ($\tau = 1/\sigma^2$). Then, one needs to define the *prior* distribution for each parameter \--- here both `mu` and `tau`. For `mu`, we use a Gaussian *prior* with mean $0$ and precision $10^{-4}$ (thus variance $10,000$: this corresponds to a weakly informative *prior* quite spread out given the scale of our data. For `tau` we use the conjugate *prior* for precision in a Gaussian model, namely the Gamma distribution (with very small parameters, here again to remain the least informative possible). Finally, we give a deterministic definition of the additional parameters of interest, here the standard deviation `sigma`.  
+**NB**: `~` indicates probabilistic distribution definition of a random variable, while `<-` indicates a deterministic calculus definition.
+  
+ 3. With the `R` function `jags.model()`, create a `jags` object `R`.
+      ```{r 1e-jags, eval = FALSE, echo = TRUE}
+      myfirstjags <- jags.model("normalBUGSmodel.txt", data = list('obs' = obs, 
+                                                                   'N' = length(obs)))
+      ```
+        
+ 4. With the `R` function `coda.samples()`, generate a sample of size $2,000$ from the *posterior* distributions for the mean and standard deviation parameters.
+
+        
+ 5. Study the output of the `coda.samples()` `R` function, and compute both the *posterior* mean and median estimates for `mu` and `sigma`. Give a credibility interval at 95% for both.
+        
+  
+ 6. Load the `coda` `R` package. This package functions for convergence diagnostic and analysis of MCMC algorithm outputs.
+      ```{r libcoda, eval = TRUE, echo = TRUE}
+      library(coda)
+      ```
+      
+ 7. To diagnose the convergence of an MCMC algorithm, it is necessary to generate different Markov chains, with different initial values. Recreate a new `jags` object in `R` and specify 3 the use of 3 Markov chains with the argument `n.chains`, and initialize `mu` and `tau` at $0, -10, 100$ and at $1, 0.01, 0.1$ respectively with the argument `inits` (**ProTip:** use a `list` of `list`, one for each chain).  
+        
+ 8. With the `R` function `gelman.plot()`, plot the Gelman-Rubin statistic.
+        
+ 9.  With the `R` functions `autocorr.plot()` and `acfplot()` evaluate the autocorrelation of the studied parameters.
+        
+ 10.  With the `R` function `cumuplot()` evaluate the running quantiles of the studied parameters. How can you interpret them ?
+
+ 11. With the `R` function `crosscorr.plot()` evaluate the correlations between the studied parameters. How can you interpret them ?
+
+ 12. With the function `hdi()` from the `R` package `HDInterval`, provide highest densitity *posterior* credibility intervals at 95%, and compare them to those obtained with the $2.5$% and $97.5$% quantiles.
+
+ 
