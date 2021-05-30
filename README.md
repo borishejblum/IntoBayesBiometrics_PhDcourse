@@ -38,5 +38,8 @@ Welcome to the 2021 PhD training course from the *Digital Public Health* program
 
 ## Pre-requisites
 
+ - Maximum Likelihood estimation
+ - R functional programming
+
  
  
