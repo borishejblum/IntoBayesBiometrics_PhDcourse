@@ -14,42 +14,42 @@ knitr::opts_chunk$set(tidy = TRUE, message = FALSE, cache=FALSE)
 Using the historical example, program an independent Metropolis-Hastings algorithm to estimate the *posterior* distribution of parameter $\theta$ (i.e. the probability of having a girl for a birth). The *prior* distribution on $\theta$ will be used as the instrumental proposal, and we will start by using a uniform *prior* on $\theta$. We will consider the $493,472$ births observed in Paris between 1745 and 1770, of which $241,945$ were girls.
 
   1. Program a function that computes the numerator of the *posterior* density, which can be written $p(\theta|n,S)\propto\theta^S(1-\theta)^{n-S}$ with $S = 241\,945$ and $n = 493\,472$ (plan for a boolean argument that will allow to return --- or not --- the logarithm of the *posterior* instead).
-     ```{r post-num-hist, eval = FALSE, echo = TRUE}
+     ```{r post-num-hist, eval = TRUE, echo = TRUE}
      post_num_hist <- function(theta, log = FALSE) {
        
-       n <- ... # the data
-       S <- ... # the data
+       n <- 493472 # the data
+       S <- 241945 # the data
        
        if (log) {
-         num <- ... # the **log** numerator of the posterior
+         num <- S * log(theta) + (n - S) * log(1 - theta) # the **log** numerator of the posterior
        } else {
-         num <- ... # the numerator of the posterior
+         num <- theta^S * (1 - theta)^(n - S) # the numerator of the posterior
        }
        return(num) # the output of the function
      }
      
+     post_num_hist(0.2, log=FALSE)
+     post_num_hist(0.6, log=FALSE)
      post_num_hist(0.2, log=TRUE)
      post_num_hist(0.6, log=TRUE)
      ```
   2. Program the corresponding Metropolis-Hastings algorithm, returning a vector of size $n$ sampled according to the *posterior* distribution. Also returns the vector of acceptance probabilities $\alpha$. What happens if this acceptance probability is ***NOT*** computed on the $log$ scale ?  
   REMEMBER that $log(a/b) = log(a) - log(b)$ and that probabilities must be between 0 and 1...
-     ```{r MHunif, eval = FALSE, echo = TRUE}
+     ```{r MHunif, eval = TRUE, echo = TRUE}
      myMH <- function(niter, post_num){
-     
        x_save <- numeric(length = niter) #create a vector of 0s of length niter to store the sampled values
        alpha <- numeric(length = niter) #create a vector of 0s of length niter to store the acceptance probabilities
-     
        # initialise x0
-       x <- ...
-       
+       x <- runif(n = 1, min = 0, max = 1)
        # accpetance-rejection loop
        for(t in 1:niter){
          # sample y from the proposal (here uniform prior)
-         y <- ...
+         y <- runif(n = 1, min = 0, max = 1)
          #compute the acceptance-rejection probability
-         alpha[t] <- ...
+         alpha[t] <- min(1, exp(post_num(y, log = TRUE) -
+                           post_num(x, log = TRUE)))
          #accept or reject
-          u <- ...
+          u <- runif(1)
           if(u <= alpha[t]){
             x_save[t] <- y
           }else{
@@ -62,7 +62,7 @@ Using the historical example, program an independent Metropolis-Hastings algorit
      }
      ```
   3. Compare the *posterior* density obtained with this Metropolis-Hastings algorithm over 2000 iterations to the theoretical one (the theoretical density can be obtained with the `R` function `dbeta(x, 241945 + 1, 251527 + 1)` and represented with the `R` function `curve(..., from = 0, to = 1, n = 10000)`). Mindfully discard the first 500 iterations of your Metropolis-Hastings algorithm in order to reach the Markov chain convergence before constructing your Monte Carlo sample. Comment those results, especially in light of the acceptance probabilities computed throughout the algorithm, as well as the different sampled values for $\theta$.
-      ```{r MHcomp, eval = FALSE, echo = TRUE, fig.height = 8, fig.width = 8}
+      ```{r MHcomp, eval = correction, echo = correction, fig.height = 8, fig.width = 8}
       sampleMH <- myMH(2000, post_num = post_num_hist)
       
       par(mfrow=c(2,2))
@@ -83,31 +83,53 @@ Using the historical example, program an independent Metropolis-Hastings algorit
       plot(sampleMH$theta, type = "l", xlab = "Iteration", 
            ylab = expression(paste("Sampled value for ", theta)), ylim = c(0,1))
       ```
-  4. Now imagine we only observe $100$ births, among which $49$ girls, and use a $\text{Beta}(\alpha = 3, \beta=3)$ distribution as *prior*. Program the corresponding M-H algorithm and study the new results (one can do $10,000$ iterations of this new M-H algorithm for instance, again mindfully discarding the first 500 iterations).
-    DO NOT forget to account for the proposal density ($q$) in the compuation of the acceptance probability $alpha$.
-      ```{r MHbeta, eval = FALSE, echo = TRUE, fig.height = 8, fig.width = 8}
+  4. Now imagine we only observe $100$ births, among which $49$ girls, and use a $\text{Beta}(\alpha = 3, \beta=3)$ distribution as *prior*. Program the corresponding M-H algorithm and study the new results (one can do $10,000$ iterations of this new M-H algorithm for instance, again mindfully discarding the first 500 iterations).  
+  DO NOT forget to account for the proposal density ($q$) in the compuation of the acceptance probability $alpha$.
+      ```{r MHbeta, eval = correction, echo = correction, fig.height = 8, fig.width = 8}
       post_num_beta <- function(theta, a = 3, b = 3, log = TRUE) {
   
-        n <- ... #number of trials (births)
-        S <- ...  #number of success (feminine births)
+        n <- 100 #number of trials (births)
+        S <- 49  #number of success (feminine births)
   
         if (log) {
-          num <- ...
+          num <- (a + S - 1) * (log(theta)) + (b + n - S - 1) * log(1 - theta)
         } else {
-          num <- ...
+          num <- theta^(a + S - 1) * (1 - theta)^(b + n - S - 1)
         }
         return(num)
       }
       
       myMH_betaprior <- function(niter, post_num, a = 3, b = 3) {
   
-        ...
+        x_save <- numeric(length = niter) # create a vector of 0s of length niter to store the sampled values
+        alpha <- numeric(length = niter) # create a vector of 0s of length niter to store the acceptance probabilities
+    
+        # initialise x
+        x <- runif(n = 1, min = 0, max = 1)
         
+        # acceptance-rejection loop
+        for (t in 1:niter) {
+        
+          # sample a value from the proposal (beta prior)
+          y <- rbeta(n = 1, a, b)
+        
+          # compute acceptance-rejection probability
+          alpha[t] <- min(1, exp(post_num(y, a = a, b = b, log = TRUE) - 
+                               post_num(x, a = a, b = b, log = TRUE) + 
+                               dbeta(x, a, b, log = TRUE) - dbeta(y, a, b, log=TRUE)))
+          # acceptance-rejection step
+          u <- runif(1)
+          if (u <= alpha[t]) {
+            x <- y  # acceptance of y as new current value
+          }
+          # saving the current value of x
+          x_save[t] <- x
+        }
         return(list("theta" = x_save, "alpha" = alpha))
       }
-      
 
       sampleMH <- myMH_betaprior(10000, post_num = post_num_beta)
+      
       
       par(mfrow=c(2,2))
       plot(density(sampleMH$theta[-c(1:500)]), col = "red", xlim = c(0,1),
@@ -121,24 +143,48 @@ Using the historical example, program an independent Metropolis-Hastings algorit
       plot(sampleMH$theta, type = "l", xlab = "Iteration", 
            ylab = expression(paste("Sampled value for ", theta)), ylim = c(0,1))
       ```
-  5. Using the data from the historical example and with a $\text{Beta}(\alpha = 3, \beta=3)$ *prior*, program a random-walk Metropolis-Hastings algorithm (with a uniform random step of width $0.02$ for instance). This means that the proposal is going to change, and is now going to depend on the previous value (no longer an independant M-H algorithm)..  
+  5. Using the data from the historical example and with a $\text{Beta}(\alpha = 3, \beta=3)$ *prior*, program a random-walk Metropolis-Hastings algorithm (with a uniform or a Gaussian random step of width $0.02$ for instance). This means that the proposal is going to change, and is now going to depend on the previous value.  
 Once again, study the results obtained this way (one can change the width of the random step).
-      ```{r MHalea, eval = FALSE, echo = TRUE, fig.height = 8, fig.width = 8}
+      ```{r MHalea, eval = correction, echo = correction, fig.height = 8, fig.width = 8}
       post_num_beta_hist <- function(theta, a = 3, b = 3, log = TRUE){
         
-        n <- ... #number of trials (births)
-        S <- ... #number of success (feminine births)
+        n <- 493472 #number of trials (births)
+        S <- 241945 #number of success (feminine births)
         
         if(log){
-          num <- ...
+          num <- (a + S - 1) * log(theta) + (b + n - S - 1) * log(1-theta)
         }else{
-          num <- ...
+          num <- theta^(a + S - 1) * (1-theta)^(b + n - S - 1)
         }
         return(num)
       }
       
       myMH_betaprior_randomwalk <- function(niter, post_num, a=3, b=3){
         
+        x_save <- numeric(length = niter) # create a vector of 0s of length niter to store the sampled values
+        alpha <- numeric(length = niter) # create a vector of 0s of length niter to store the acceptance probabilities
+        
+        #initialise x0
+        x <- runif(n = 1, min = 0, max = 1)
+        
+        # acceptance-rejection loop
+        for(t in 1:niter){
+          # sample a value from the proposal  (random walk)
+          y <- x + runif(1, -0.01, 0.01)
+        
+          # compute acceptance-rejection probability
+          alpha[t] <- min(1, exp(post_num(y, a=a, b=b, log=TRUE) - 
+                                 post_num(x, a=a, b=b, log=TRUE)))
+        
+          # acceptance-rejection step
+          u <- runif(1)
+          if(u <= alpha[t]){
+            x <- y # accept y and update current value
+          }
+          
+          # save current value
+          x_save[t] <- x
+        }
         
         return(list("theta" = x_save, "alpha" = alpha))
       }
@@ -159,3 +205,5 @@ Once again, study the results obtained this way (one can change the width of the
       plot(sampleMH$theta, type="l", xlab = "Iteration", main = "Zoom",
            ylab = expression(paste("Sampled value for ", theta)), ylim = c(0.45, 0.55))
       ```
+
+

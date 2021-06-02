@@ -1,0 +1,32 @@
+---
+title: "Exercise 2: Inverse transform sampling"
+output:
+  html_document:
+    toc: false
+    number_sections: false
+---
+
+```{r, include=FALSE, }
+knitr::opts_chunk$set(tidy = TRUE, message = FALSE, cache=TRUE)
+```
+
+
+
+ 1. Program a sampling algorithm to sample from the exponential distribution with parameter $\lambda$ thanks to the inverse transform function (starting from the `R` function `runif`).  
+Compare the distribution of your sample to the theoretical target distribution (thanks to the built-in `R` function `dexp`).  
+Try out several values for the $\lambda$ parameter of the exponential distribution (e.g. 1, 10, 0.78, ...).
+
+    ```{r Exp, eval = TRUE, echo = TRUE, fig.align = "center", out.width = "67%"}
+    generate_exp <- function(n, lambda) {
+      u <- runif(n)
+      x <- -1/lambda * log(1 - u)
+      return(x)
+    }
+
+    n_samp <- 1000
+    my_samp <- generate_exp(n = n_samp, lambda = 10)
+    hist(my_samp, probability = TRUE, n = 50)
+    curve(dexp(x, rate = 10), from = 0, to = max(my_samp), col = "red", lty = 2, add = TRUE)
+    legend("topright", c("Inverse transform", "R dexp()"), lty = c(1, 2), col = c("black", "red"))
+    ```
+
