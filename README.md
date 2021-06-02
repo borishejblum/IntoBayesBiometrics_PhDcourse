@@ -17,7 +17,7 @@ Welcome to the 2021 PhD training course from the *Digital Public Health* program
  - Exercise 3: [Metropolis-Hastings algorithm](MH.Rmd) -- [solutions](MH_sol.Rmd)
  - Exercise 4: [BUGS & JAGS](JAGSstart.Rmd) -- [solutions](JAGSstart_sol.Rmd)
  - Exercise 5: [Post-mortem analysis of an under-powered randomized trial](RRestim.Rmd)
- and [Goligher article](Goligher2018JAMA.pdf)
+ and [Goligher article](Goligher2018JAMA.pdf) -- [solutions](RRestim_sol.Rmd)
  
 ## Lecture notes
 

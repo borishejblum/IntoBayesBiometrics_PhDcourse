@@ -1,0 +1,172 @@
+---
+title: "Exercise 5: Post-mortem analysis of an under-powered randomized trial"
+output:
+  html_document:
+    toc: false
+    number_sections: false
+---
+
+
+```{r, include=FALSE, }
+knitr::opts_chunk$set(tidy = TRUE, message = FALSE, cache=FALSE)
+```
+
+The randomized clinical trial *EOLIA*^[@combes2018Extracorporeal] evaluated a new treatment for severe acute respiratory distress syndrome (severe ARDS) by comparing the mortality rate after 60 days among 249 patients randomized between a control group (receiving conventional treatment, i.e. mechanical ventilation) and a treatment group receiving extracorporeal membrane oxygenation (ECMO) --- the new treatment studied. A frequentist analysis of the data concluded to a Relative Risk of death of $0.76$ in the ECMO group compared to controls (in Intention to Treat), with $CI_{95\%} = [0.55 , 1.04]$ and the associated p-value of $0.09$.
+
+Goligher *et al.* (2019) ^[@goligher2018Extracorporeal] performed a Bayesian re-analysis of these data, further exploring the evidence and how it can be quantified and summarized with a Bayesian approach.
+
+
+|                                   | Control | ECMO |
+|-----------------------------------|---------|------|
+| **$n$ observed**                  | 125     | 124  |
+| **number of deceased at 60 days** |  57     |  44  |
+Table: Observed data from the *EOLIA* trial
+
+
+ 1. Write the Bayesian model used by Goligher *et al.* (2019).
+  
+    `r if(correction){":::Correction
+    ***I) Question of interest:***  
+    *Is the Relative Risk of death under ECMO compared to the conventional mechanical treatment less than one ?*  
+    <br>
+    ***II) Sampling model:***  
+    *Let $Z_{control}$ be the number of death in the control group, and $Z_{ecmo}$ the number of death in the ECMO group*
+    $$Z_{control} \\sim Binomial(p_c, 125)$$
+    $$Z_{ecmo} \\sim Binomial(RR\\times p_c, 124)$$
+    <br>
+    ***III) Priors:***
+    $$p_c\\sim U_{[0,1]}$$
+    $$log(RR)\\sim U_{[-35,35]}$$
+    <br>
+    ***NB:*** One can also define a sampling model at the individual level:  
+    *Let $Y_{control_i}$ be a binary variable indicating whether the patient $i$ 
+    from the control group died before 60 days, and $Y_{ecmo_i}$ a similar variable for patient from the ecmo group.*
+    $$Y_{control_i} \\overset{iid}{\\sim} Bernoulli(p_c)$$
+    $$Y_{ecmo_i} \\overset{iid}{\\sim} Bernoulli(RR\\times p_c)$$
+    :::
+    <br>"}`
+  
+  
+ 2. Write the corresponding BUGS model, and save it into a `.txt` file (for instance called `goligherBUGSmodel.txt`)
+  
+    `r if(correction){":::Correction
+    *As we have seen above, there are two equivalent ways of defining the sampling model:  *
+      - *either at the population level with a **Binomial** likelihood*,
+      - *or at the individual level with a **Bernoulli** likelihood*
+    :::
+    <br>"}`
+    
+       ```{BUGS goligher-popmodel-noinfo, eval=FALSE, echo=correction}
+       # Population model
+       model{
+      
+         # Sampling model
+         zcontrol~dbin(pc, ncontrol)
+         zecmo~dbin(RR*pc, necmo)
+      
+         # Prior
+         logRR~dnorm(0, 1/100)
+         pc~dunif(0,1) #probability of death in the control group
+        
+         # Re-parameterizations
+         RR <- exp(logRR)
+         ARR <- RR*pc
+       }
+      ```
+ 
+      ```{BUGS goligher-indivmodel-noinfo, eval=FALSE, echo=correction}
+      # Individual model
+      model{
+      
+        # Sampling model
+        for (i in 1:ncontrol){
+          ycontrol[i]~dbern(pc)
+        }
+        for (i in 1:necmo){
+          yecmo[i]~dbern(RR*pc)
+        }
+      
+        # Prior
+        logRR~dnorm(0, 1/100)
+        pc~dunif(0,1) #probability of death in the control group
+        
+        # Re-parameterizations
+        RR <- exp(logRR)
+        ARR <- RR*pc
+      }
+      ```
+
+
+
+ 3. First create two binary data vectors `ycontrol` and `yecmo`, that are either `1` or `0`, to encode the observations from the data table above. Then uses the `jags.model()` and `coda.samples()` to replicate the estimation from Goligher *et al.* (2019) (**ProTip:** use the function `window()` to remove the burn-in observation from the output of the `coda.samples` function.)
+      ```{r goligher-data-fit, eval = correction, echo = correction, fig.width = 12, fig.height = 8, out.width = "95%"}
+        #Individual data
+        ycontrol <- c(rep(0, 125-57), rep(1, 57))
+        yecmo <- c(rep(0, 124-44), rep(1, 44))
+        
+        #sampling
+        library(rjags)
+        goligher_jags_indiv <- jags.model(file = "goligherBUGSmodel_indiv.txt", 
+                                          data = list("ycontrol" =  ycontrol, 
+                                                      "ncontrol" = length(ycontrol),
+                                                      "yecmo" =  yecmo, 
+                                                      "necmo" = length(yecmo)
+                                                      ), 
+                                          n.chains = 3)
+        res_goligher_indiv <- coda.samples(model = goligher_jags_indiv, 
+                                               variable.names = c('pc', 'RR'), 
+                                               n.iter = 40000)
+        
+        #postprocessing
+        res_goligher_burnt_indiv <- window(res_goligher_indiv, start=20001) # remove burn-in for Markov chain convergence
+        
+        
+        
+        
+        #Population data
+        zcontrol <- 57
+        zecmo <- 44
+        #sampling
+        goligher_jags_pop <- jags.model(file = "goligherBUGSmodel_pop.txt", 
+                                          data = list("zcontrol" =  zcontrol, 
+                                                      "ncontrol" = 125,
+                                                      "zecmo" =  zecmo, 
+                                                      "necmo" = 124
+                                                      ), 
+                                          n.chains = 3)
+        res_goligher_pop <- coda.samples(model = goligher_jags_pop, 
+                                               variable.names = c('pc', 'RR'), 
+                                               n.iter = 40000)
+        
+        #post-processing
+        res_goligher_burnt_pop <- window(res_goligher_pop, start=20001) # remove burn-in for Markov chain convergence
+        ```
+        
+
+
+  4. Check the convergence, and then comment the estimate results (**ProTip:** look at the effective sample size with the `effectiveSize()` `R` function).
+        ```{r goligher-diagnoses, eval = correction, echo = correction}
+        effectiveSize(res_goligher_burnt_pop)
+        plot(res_goligher_burnt_pop)
+        gelman.plot(res_goligher_burnt_pop)
+        acfplot(res_goligher_burnt_pop)
+        par(mfrow=c(3, 2))
+        cumuplot(res_goligher_burnt_pop, ask=FALSE, auto.layout = FALSE)
+        par(mfrow=c(1, 1))
+        
+        summary(res_goligher_burnt_pop)
+        summary(res_goligher_burnt_indiv)
+        
+        
+        # shortest 95% Credibility interval:
+        HDInterval::hdi(res_goligher_burnt_pop) 
+        
+        # posterior porbability of RR <1:
+        mean(c(sapply(res_goligher_burnt_pop, "[", , 1))<1)
+        ```
+
+
+  5. Change to a more informative *prior* using a Gaussian distribution for the log(RR), centered on log(0.78) and with a standard deviation of 0.15 in the log(RR) scale (i.e. a precision of $\approx 45$). Comment the results. Try out other *prior* distributions.
+        ```{BUGS goligher-info, eval=FALSE, echo=correction}
+         logRR~dnorm(log(0.78), 45)
+        ```
